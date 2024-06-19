@@ -1,6 +1,6 @@
 const User = require('../../../database/models/User.js');
 const Token = require('../../../database/models/Token.js');
-// const User = require('../../../database/models/Cart.js');
+
 const asyncHandler = require('../../middlewares/asyncHandler.js');
 const {
     GeneratePassword, 
@@ -11,7 +11,7 @@ const {
     ValidateSignature2
 } = require('../../utils/index.js');
 const {sendEmail} = require('../../utils/sendEmail.js');
-const {signUpTemplate} = require('../../utils/signUpTemplate.js');
+const {activateTemplate} = require('../../utils/activateTemplate.js');
 const { verify } = require('jsonwebtoken');
 
 
@@ -56,8 +56,8 @@ const authCtrl = {
             //! Activate User
             const PORT = process.env.PORT;
             const activationLink = `${req.protocol}://${req.headers.host}/activate/?token=${token}`;
+            // const activationLink = activateTemplate(`${req.protocol}://${req.headers.host}/activate/?token=${token}`);
             // console.log(activationLink);
-            // const activationLink = signUpTemplate(`${req.protocol}://${req.headers.host}/activate/${token}`);
             const isEmailSent = await sendEmail({
                 to: email,
                 subject: 'Account Activation',
