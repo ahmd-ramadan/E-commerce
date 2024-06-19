@@ -1,0 +1,4 @@
+test
+structure
+*.env
+node_modules
