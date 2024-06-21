@@ -1,6 +1,6 @@
 const mongoose = require('mongoose');
-const { systemRoles } = require('../../src/utils/system-enums.js');
-
+const { systemRoles } = require('../../src/utils/systemValues.js');
+// const { systemPermissions } = require('../../src/utils/systemValues.js');
 const userSchema = new mongoose.Schema({
     name: {
         type: String,
@@ -11,7 +11,7 @@ const userSchema = new mongoose.Schema({
         type: String,
         trim: true,
         required: true,
-        unique: true,
+        // unique: true,
     },
     password: {
         type: String,
@@ -22,6 +22,12 @@ const userSchema = new mongoose.Schema({
         enum: Object.values(systemRoles),
         default: systemRoles.USER,
     },
+    // permissions: [
+    //     {
+    //         type: String,
+    //         enum: Object.values(systemPermissions),
+    //     }
+    // ],
     addresses: [
         { 
             type: String, 
@@ -34,33 +40,28 @@ const userSchema = new mongoose.Schema({
             required: true,
         }
     ],
-    age: {
-        type: Number,
-        min: 16,
-        max: 100,
-    },
-    isConfirmed: {
-        type: Boolean,
-        default: false
-    },
-    isActive: {
-        type: Boolean,
-        default: true
-    },
-    isBlocked: {
-        type: Boolean,
-        default: false
-    },
     confirmEmail: {
         type: Boolean,
         default: false
     },
+    isLoggedIn: {
+        type: Boolean,
+        default: false,
+    },
+    isDeleted: {
+        type: Boolean,
+        default: false,
+    },
+    token: {
+        type: String,
+    },
     forgetCode: {
         type: String,
-    }
-}, { 
+    },
+}, 
+{ 
     timestamps: true 
 });
 
-module.exports = mongoose.model('User', userSchema);
 
+module.exports = mongoose.model('User', userSchema);

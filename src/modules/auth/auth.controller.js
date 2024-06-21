@@ -1,5 +1,7 @@
 const User = require('../../../database/models/User.js');
-const Token = require('../../../database/models/Token.js');
+const Vendor = require('../../../database/models/Vendor.js');
+const Request = require('../../../database/models/Request.js');
+
 
 const asyncHandler = require('../../middlewares/asyncHandler.js');
 const {
@@ -11,8 +13,7 @@ const {
     ValidateSignature2
 } = require('../../utils/index.js');
 const {sendEmail} = require('../../utils/sendEmail.js');
-const {activateTemplate} = require('../../utils/activateTemplate.js');
-const { verify } = require('jsonwebtoken');
+const {systemRequests, systemRoles, systemRequestsStatus} = require('../../utils/systemValues.js');
 
 
 
@@ -21,13 +22,13 @@ const authCtrl = {
     signUp: asyncHandler(
         async(req, res, next) => {
             //! Check Fields
-            const { name, email, password, age, role, phoneNumbers} = req.body;
-            if(!name || !email || !password || !age || !role || !phoneNumbers) {
+            const { name, email, password, phoneNumber} = req.body;
+            if(!name || !email || !password || !phoneNumber) {
                 return next(new Error('Pleasse all fields are required', {status: 400}));
             }
 
             //! User Exist ?
-            const userExist = await User.findOne({email});
+            const userExist = await User.findOne({email, role: systemRoles.USER});
             if(userExist) {
                 return next(new Error('User already existed', {status: 400}));
             }
@@ -41,9 +42,7 @@ const authCtrl = {
                 name, 
                 email, 
                 password: hashedPassword, 
-                age, 
-                role, 
-                phoneNumbers,
+                phoneNumbers: [phoneNumber],
             });
 
             //! Create Token
@@ -54,18 +53,16 @@ const authCtrl = {
 
             
             //! Activate User
-            const PORT = process.env.PORT;
-            const activationLink = `${req.protocol}://${req.headers.host}/activate/?token=${token}`;
-            // const activationLink = activateTemplate(`${req.protocol}://${req.headers.host}/activate/?token=${token}`);
+            const activationLink = `${req.protocol}://${req.headers.host}/verify-email/?token=${token}`;
             // console.log(activationLink);
             const isEmailSent = await sendEmail({
                 to: email,
                 subject: 'Account Activation',
-                ///////////////////  change //////////////////////
-                html: `<a href="${activationLink}">Click here to activate your account</a>`,
+                linkTo: activationLink,
+                fileName: "activate-email.ejs",
             });
             if (!isEmailSent) {
-                return next(new Error('Fail to sent reset password email!', {status: 400}));
+                return next(new Error('Fail to sent email to activate!', {status: 400}));
             } 
 
             /////////////////////////// cart here ////////////////////////////////////
@@ -80,6 +77,101 @@ const authCtrl = {
                     _id: newUser._id,
                 },
                 message: `Account Created Succefully ... Please Check Your Email To Activate Acount`,
+            });
+        }
+    ),
+
+    vendorSignUp: asyncHandler(
+        async (req, res, next) => {
+            //! Check Fields
+            const {
+                name, email, password, phoneNumber,
+                factoryName, factoryAddress, taxNumber,
+                tradeMark, websiteLink, instagramLink, facebookLink
+            } = req.body;
+            if(!name || !email || !password || !phoneNumber || !factoryName || !factoryAddress || !taxNumber) {
+                return next(new Error('Pleasse all fields are required', {status: 400}));
+            }
+
+            //! User Exist ?
+            const userExist = await User.findOne({email, role: systemRoles.VENDOR});
+            if(userExist) {
+                return next(new Error('User already existed', {status: 400}));
+            }
+            
+            //! Hashed password
+            const salt = await GenerateSalt();
+            const hashedPassword = await GeneratePassword(password, salt);
+            
+            //! Save User in database
+            const newUser = await User.create({
+                name, 
+                email, 
+                password: hashedPassword, 
+                phoneNumbers: [phoneNumber],
+                role: systemRoles.VENDOR
+            });
+
+            //! Save Vendor-details in database
+            const newVendor = await Vendor.create({
+                userId: newUser._id,
+                factoryName, 
+                factoryAddress, 
+                taxNumber,
+                tradeMark: tradeMark || "", 
+                websiteLink: websiteLink | "", 
+                instagramLink: instagramLink || "", 
+                facebookLink: facebookLink || ""
+            });
+
+            //! Send request to admin, save
+            const adminRequest = await Request.create({
+                userId: newUser._id,
+                desc: "Ask You To Be A Vendor",
+                type: systemRequests.BE_VENDOR,
+                phoneNumber,
+                data: newVendor._id,
+            });
+
+            //! Send Response
+            res.status(200).json({
+                success: true,
+                data: null,
+                message: 'Vendor signed up successfully. Awaiting admin approval.'
+            });
+        }
+    ),
+
+    vendorHandleRequest: asyncHandler(
+        async(req, res, next) => {
+            const {requestId, status } = req.body;
+            const adminRequest = await Request.findById(requestId).populate({
+                path: "data",
+                model: "Vendor",
+                select: "isApproved"
+            });
+
+            console.log(adminRequest);
+
+            if (!adminRequest) {
+                return next(new Error('Request not found', { status: 404}));
+            }
+
+            //! Update the request status
+            adminRequest.status = status;
+            await adminRequest.save();
+
+            //! Update the vendor approval status
+            if (status === systemRequestsStatus.APPROVED) {
+                adminRequest.data.isApproved = true;
+                await adminRequest.data.save();
+            }
+
+            //! Send response
+            res.status(200).json({ 
+                success: true,
+                data: null,
+                message: `Vendor request ${status}` 
             });
         }
     ),
@@ -139,24 +231,20 @@ const authCtrl = {
             const token = await GenerateSignature(
                 {
                     email,
-                    user: user._id,
+                    id: user._id,
                 }
-            );
+            ); 
 
-            //! Save Token
-            await Token.create(
-                {
-                    token,
-                    user: user._id
-                }
-            ) 
+            user.isLoggedIn = true;
+            user.token = token;
+
+            await user.save();
 
             //! Send Response
             res.status(200).json({
                 success: true,
                 data: {
-                    user,
-                    token: token,
+                    user
                 },
                 message: `Welcome here ${user.name}`,
             });
@@ -170,7 +258,7 @@ const authCtrl = {
             const user = await User.findOne({
                 email,
                 confirmEmail: true,
-                isBlocked: false,
+                isDeleted: false,
             });
             if (!user) {
                 return next(new Error('Invalid email!', {status: 404 }));
@@ -190,15 +278,13 @@ const authCtrl = {
             );
 
             //! Generate reset password link and sent email
-            const resetPasswordLink = `${req.protocol}://${req.headers.host}/reset/?token=${token}`;
+            const resetPasswordLink = `${req.protocol}://${req.headers.host}/reset-password/${token}`;
 
             const isEmailSent = await sendEmail({
                 to: email,
                 subject: "Reset Passowrd",
-                html: `
-                    <h2>please click on this link to reset your password</h2>
-                    <a href="${resetPasswordLink}">Reset Password</a>
-                    `,
+                linkTo: resetPasswordLink,
+                fileName: "reset-password.ejs"
             });
 
             //! Check if email is sent successfully
@@ -222,9 +308,33 @@ const authCtrl = {
         }
     ),
 
+    resetPasswordGet: asyncHandler(
+        async (req, res, next) => {
+            const { token } = req.params;
+            //! Decoded token
+            await ValidateSignature2(token, req);
+            const payload = req.user;
+
+            //! Check email in & forget code in DB
+            const user = await User.findOne({
+                email: payload?.email,
+                forgetCode: payload?.sentCode,
+            });
+            if (!user) {
+                return next(new Error('You already reset your password!', {status: 404 }));
+            }
+
+            return res.status(200).json({
+                success: true,
+                data: null,
+                message: 'Reset Password Here',
+            });
+        }
+    ),
+
     resetPassword: asyncHandler(
         async (req, res, next) => {
-            const { token } = req.query;
+            const { token } = req.params;
             const { newPassword } = req.body;
             //! Decoded token
             await ValidateSignature2(token, req);
@@ -243,6 +353,7 @@ const authCtrl = {
             const salt = await GenerateSalt();
             const hashedNewPassword = await GeneratePassword(newPassword, salt);
             user.password = hashedNewPassword;
+            
 
             //! Update forget code to null in DB
             user.forgetCode = null;
@@ -264,7 +375,7 @@ const authCtrl = {
 
     updatePassword: asyncHandler(
         async (req, res, next) => {
-            const _id = req.user.user;
+            const {_id} = req.authUser;
             // console.log(req.user);
             const {currentPassword, newPassword} = req.body;
             
@@ -281,6 +392,7 @@ const authCtrl = {
             const salt = await GenerateSalt();
             const hashedNewPassword = await GeneratePassword(newPassword, salt);
             user.password = hashedNewPassword;
+            user.isLoggedIn = false;
 
             //! Save new password in DB
             const updatedUserPassword = await user.save();
@@ -296,7 +408,7 @@ const authCtrl = {
                 message: "Password updated successfully!",
             });
         }
-    ) 
+    )
 };
 
 module.exports = authCtrl;

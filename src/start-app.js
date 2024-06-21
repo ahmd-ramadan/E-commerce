@@ -2,7 +2,8 @@
 const cors = require('cors');
 const {mongoConection} = require('../database/dbConnection.js');
 const router = require('./modules/index');
-
+const ejs = require('ejs');
+const path = require('path');
 
 module.exports.startApp = async(app, express) => {
 
@@ -10,7 +11,12 @@ module.exports.startApp = async(app, express) => {
 
     app.use(cors());
     app.use(express.json());
+    
+    // Set EJS as the templating engine
+    app.set('view engine', 'ejs');
 
+    // Set the directory for your views
+    app.set('views', path.join(__dirname, 'views'));
 
     // app.use((req, res, next) => {
     //     if(req.originalUrl === "/Order/Webhook") {

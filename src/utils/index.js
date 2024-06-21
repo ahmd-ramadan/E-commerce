@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+// const asyncHandler = require('../middlewares/asyncHandler');
 
 const KEY = process.env.JWT_SECRET;
 

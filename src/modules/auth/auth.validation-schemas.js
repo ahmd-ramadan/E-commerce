@@ -1,5 +1,10 @@
 const Joi = require('joi');
-const { systemRoles } = require('../../utils/system-enums.js');
+const { 
+    systemRoles, 
+    systemRequestsStatus
+} = require('../../utils/systemValues.js');
+
+const systemRequestsStatusArray = Object.values(systemRequestsStatus);
 
 module.exports.validator = {
     signUpSchema : {
@@ -7,18 +12,34 @@ module.exports.validator = {
             name: Joi.string().min(2).max(20).required().trim(),
             email: Joi.string().email().required(),
             password: Joi.string().min(6).max(11).required(),
-            phoneNumbers: Joi.array().required()
-                .items(Joi.string().length(11).required().trim()),
-            // addresses: Joi.array().required().items(Joi.string().required().trim()),
-            age: Joi.number().required().max(100).min(16),
-            role: Joi.string()
-            .valid(
-                systemRoles.ADMIN,
-                systemRoles.USER
-            )
-            .default(systemRoles.USER),
+            phoneNumber: Joi.string().length(11).required().trim(),
+            // address: Joi.string().required().trim(),
         }),
     },
+
+    vendorSignUpSchema: {
+        body: Joi.object({
+            name: Joi.string().min(2).max(20).required().trim(),
+            email: Joi.string().email().required(),
+            password: Joi.string().min(6).max(11).required(),
+            phoneNumber: Joi.string().length(11).required().trim(),
+            factoryName: Joi.string().min(2).max(20).required().trim(), 
+            factoryAddress: Joi.string().required().trim(), 
+            taxNumber: Joi.string().required().trim(),
+            tradeMark: Joi.string().allow(""), 
+            websiteLink: Joi.string().allow(""), 
+            instagramLink: Joi.string().allow(""), 
+            facebookLink: Joi.string().allow("")
+        }),
+    },
+
+    vendorHandleRequestSchema: {
+        body: Joi.object({
+            requestId: Joi.string().pattern(/^[0-9a-fA-F]{24}$/).required(), // Validate MongoDB ObjectId format
+            status: Joi.string().valid(...systemRequestsStatusArray).required(), 
+        }),
+    },
+
 
     verifyEmailSchema : {
         query: Joi.object({
@@ -39,14 +60,22 @@ module.exports.validator = {
         }),
     },
 
+    resetPasswordGetSchema: {
+        params: Joi.object({
+            token: Joi.string().required(),
+        }),
+    },
+    
     resetPasswordSchema: {
         body: Joi.object({
             newPassword: Joi.string().min(6).max(11).required(),
         }),
-        query: Joi.object({
+        params: Joi.object({
             token: Joi.string().required(),
         }),
     },
+
+
 
     updatePasswordSchema : {
         body: Joi.object({
