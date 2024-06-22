@@ -1,6 +1,7 @@
 const bcrypt = require('bcrypt');
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
+const { Types } = require('mongoose');
 // const asyncHandler = require('../middlewares/asyncHandler');
 
 const KEY = process.env.JWT_SECRET;
@@ -55,4 +56,12 @@ module.exports.ValidateSignature2 = async (token, req) => {
 
 module.exports.generateUniqueString = () => {
     return uuidv4();
+};
+
+
+
+// Custom validation function for ObjectId
+module.exports.objectIdValidation = (value, helper) => {
+    const isValid = Types.ObjectId.isValid(value);
+    return isValid ? value : helper.message('Invalid ObjectId');
 };

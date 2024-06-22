@@ -39,9 +39,8 @@ module.exports.auth = (accessRoles) => {
             if(!findUser.isLoggedIn){
                     return next(new Error("You must log in again, try later!", { status: 400 }));
             }
-
-            console.log(findUser.role);
             
+            // console.log(findUser.role);
             //! Auhtorization
             if (!accessRoles.includes(findUser.role)) {
                 return next(new Error("Unauthorized", { status: 401 }));

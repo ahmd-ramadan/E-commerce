@@ -26,6 +26,7 @@ module.exports.startApp = async(app, express) => {
     // })
 
     app.use(router.authRouter);
+    app.use('/user', router.userRouter);
 
 
     app.use((error, req, res, next) => {
