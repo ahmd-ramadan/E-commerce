@@ -132,14 +132,14 @@ const userCtrl = {
 
     vendorHandleRequest:
         async(req, res, next) => {
-            const {requestId, status } = req.body;
+            const {requestId, status} = req.body;
             const adminRequest = await Request.findById(requestId).populate({
                 path: "data",
                 model: "Vendor",
                 select: "isApproved"
             });
 
-            console.log(adminRequest);
+            // console.log(adminRequest);
 
             if (!adminRequest) {
                 return next(new Error('Request not found', { status: 404}));
@@ -154,6 +154,8 @@ const userCtrl = {
                 adminRequest.data.isApproved = true;
                 await adminRequest.data.save();
             }
+            
+            await Request.deleteOne({_id: adminRequest._id});
 
             //! Send response
             res.status(200).json({ 

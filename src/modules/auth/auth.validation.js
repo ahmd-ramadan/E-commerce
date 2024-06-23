@@ -33,7 +33,7 @@ module.exports.validator = {
 
     verifyEmailSchema : {
         query: Joi.object({
-            token: Joi.string().required(),
+            code: Joi.string().required(),
         }),
     },
 
@@ -52,7 +52,7 @@ module.exports.validator = {
 
     resetPasswordGetSchema: {
         params: Joi.object({
-            token: Joi.string().required(),
+            code: Joi.string().required(),
         }),
     },
     
@@ -61,7 +61,7 @@ module.exports.validator = {
             newPassword: Joi.string().min(6).max(11).required(),
         }),
         params: Joi.object({
-            token: Joi.string().required(),
+            code: Joi.string().required(),
         }),
     },
 

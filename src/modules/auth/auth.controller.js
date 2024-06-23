@@ -1,6 +1,7 @@
 const User = require('../../../database/models/User.js');
 const Vendor = require('../../../database/models/Vendor.js');
 const Request = require('../../../database/models/Request.js');
+const TemporaryUser = require('../../../database/models/TemporaryUser.js');
 
 const {
     generatePassword, 
@@ -23,7 +24,7 @@ const authCtrl = {
             }
 
             //! User Exist ?
-            const userExist = await User.findOne({email, role: systemRoles.USER});
+            const userExist = await User.findOne({email});
             if(userExist) {
                 return next(new Error('User already existed', {status: 400}));
             }
@@ -32,23 +33,20 @@ const authCtrl = {
             const salt = await generateSalt();
             const hashedPassword = await generatePassword(password, salt);
             
-            //! Save User in database
-            const newUser = await User.create({
+
+            //! Save TemporaryUser in database
+            const activationCode = generateUniqueString();
+            const newTempUser = await TemporaryUser.create({
                 name, 
                 email, 
                 password: hashedPassword, 
-                phoneNumbers: [phoneNumber],
+                phoneNumber: phoneNumber,
+                role: systemRoles.USER,
+                activationCode,
             });
 
-            //! Create Token
-            const token = await generateToken({
-                email: email,
-                id: newUser._id
-            });
-
-            
             //! Activate User
-            const activationLink = `${req.protocol}://${req.headers.host}/verify-email/?token=${token}`;
+            const activationLink = `${req.protocol}://${req.headers.host}/verify-email/?code=${activationCode}`;
             // console.log(activationLink);
             const isEmailSent = await sendEmail({
                 to: email,
@@ -65,12 +63,7 @@ const authCtrl = {
             //! Send Response
             res.status(200).json({
                 success: true,
-                data: {
-                    role: newUser.role,
-                    email,
-                    name,
-                    _id: newUser._id,
-                },
+                data: newTempUser,
                 message: `Account Created Succefully ... Please Check Your Email To Activate Acount`,
             });
         },
@@ -88,7 +81,7 @@ const authCtrl = {
             }
 
             //! User Exist ?
-            const userExist = await User.findOne({email, role: systemRoles.VENDOR});
+            const userExist = await User.findOne({email});
             if(userExist) {
                 return next(new Error('User already existed', {status: 400}));
             }
@@ -97,18 +90,15 @@ const authCtrl = {
             const salt = await generateSalt();
             const hashedPassword = await generatePassword(password, salt);
             
-            //! Save User in database
-            const newUser = await User.create({
+            //! Save Temporary User in database
+            const activationCode = generateUniqueString();
+            const newTempUser = await TemporaryUser.create({
                 name, 
                 email, 
                 password: hashedPassword, 
-                phoneNumbers: [phoneNumber],
-                role: systemRoles.VENDOR
-            });
-
-            //! Save Vendor-details in database
-            const newVendor = await Vendor.create({
-                userId: newUser._id,
+                phoneNumber: phoneNumber,
+                role: systemRoles.VENDOR,
+                activationCode,
                 factoryName, 
                 factoryAddress, 
                 taxNumber,
@@ -118,49 +108,80 @@ const authCtrl = {
                 facebookLink: facebookLink || ""
             });
 
-            //! Send request to admin, save
-            const adminRequest = await Request.create({
-                userId: newUser._id,
-                desc: "Ask You To Be A Vendor",
-                type: systemRequests.BE_VENDOR,
-                phoneNumber,
-                data: newVendor._id,
+            //! Activate User
+            const activationLink = `${req.protocol}://${req.headers.host}/verify-email/?code=${activationCode}`;
+            // console.log(activationLink);
+            const isEmailSent = await sendEmail({
+                to: email,
+                subject: 'Account Activation',
+                linkTo: activationLink,
+                fileName: "activate-email.ejs",
             });
+            if (!isEmailSent) {
+                return next(new Error('Fail to sent email to activate!', {status: 400}));
+
+            }
 
             //! Send Response
             res.status(200).json({
                 success: true,
                 data: null,
-                message: 'Vendor signed up successfully. Awaiting admin approval.'
+                message: 
+                'Account Created Succefully ... Please Check Your Email To Activate Acount ... Awaiting admin approval.'
             });
         },
 
-    verifyEmail:
-        async(req, res, next) => {
-            //! Recieve token and Decode it
-            const {token} = req.query;
-            // console.log(token);
-            await validateToken(token, req);
-            const payload = req.user;
-
-            //! User exist ?
-            const user = await User.findOneAndUpdate(
-                {email: payload.email}, 
-                {confirmEmail: true}, 
-                {new: true}
-            );
-            if (!user) {
-                return next(new Error('User not found', {status: 404}));
+    verifyEmail: 
+        async (req, res, next) => {
+            const { code } = req.query;
+            if (!code) {
+                return next(new Error('Invalid activation code', { status: 400 }));
             }
-    
-            //! Send response
+        
+            const tempUser = await TemporaryUser.findOne({ activationCode: code });
+            if (!tempUser) {
+                return next(new Error('Invalid or expired activation code', { status: 400 }));
+            }
+        
+            const newUser = await User.create({
+                name: tempUser.name,
+                email: tempUser.email,
+                password: tempUser.password,
+                phoneNumbers: [tempUser.phoneNumber],
+                confirmEmail: true,
+                role: tempUser.role || systemRoles.USER,
+            });
+        
+            if (newUser.role === systemRoles.VENDOR) {
+                const newVendor = await Vendor.create({
+                    userId: newUser._id,
+                    factoryName: tempUser.factoryName,
+                    factoryAddress: tempUser.factoryAddress,
+                    taxNumber: tempUser.taxNumber,
+                    tradeMark: tempUser.tradeMark,
+                    websiteLink: tempUser.websiteLink,
+                    instagramLink: tempUser.instagramLink,
+                    facebookLink: tempUser.facebookLink,
+                });
+
+                const adminRequest = await Request.create({
+                    userId: newUser._id,
+                    desc: "Ask You To Be A Vendor",
+                    type: systemRequests.BE_VENDOR,
+                    phoneNumber: tempUser.phoneNumber,
+                    data: newVendor._id,
+                });
+            }
+        
+            await TemporaryUser.deleteOne({ _id: tempUser._id });
+        
             res.status(200).json({
-                sucess: true, 
-                data: {user},
-                message: 'Account Activated, Try to login'
+                success: true,
+                data: null,
+                message: 'Account activated successfully.',
             });
         },
-    
+
     signIn:
         async(req, res, next) => {
             //! Check fields
@@ -177,6 +198,11 @@ const authCtrl = {
 
             if(!user.confirmEmail) {
                 return next(new Error('Please confirmed your email', {status: 400}));
+            }
+
+            //! If user is vendor admin appeove to him ?  
+            if(user.role === systemRoles.VENDOR && !user.isApproved) {
+                return next(new Error('Waiting Admain Approval For You', {status: 400}));
             }
 
             //! Validate password
@@ -222,20 +248,18 @@ const authCtrl = {
             }
 
             //! Generate and hashed forget code
-            const code = generateUniqueString(6);
-            const salt = await generateSalt();
-            const hashedCode = await generatePassword(code, salt);
+            const activationCode = generateUniqueString();
 
-            //! Generate reset password token
-            const token = await generateToken({ 
-                email, 
-                sentCode: hashedCode
-            },
-            "1h"
-            );
+            // //! Generate reset password token
+            // const token = await generateToken({ 
+            //     email, 
+            //     sentCode: hashedCode
+            // },
+            // "1h"
+            // );
 
             //! Generate reset password link and sent email
-            const resetPasswordLink = `${req.protocol}://${req.headers.host}/reset-password/${token}`;
+            const resetPasswordLink = `${req.protocol}://${req.headers.host}/reset-password/${activationCode}`;
 
             const isEmailSent = await sendEmail({
                 to: email,
@@ -251,33 +275,29 @@ const authCtrl = {
         
             //! Save hashed code
             const userUpdates = await User.findOneAndUpdate(
-                {email},
-                {forgetCode: hashedCode},
-                { new: true}
+                { email},
+                { forgetCode: activationCode },
+                { new: true }
             );
 
             //! Send response
             return res.status(200).json({ 
                 success: true, 
                 data: userUpdates,
-                token,
                 message: 'Check Your Email To Update Your Password' 
             });
         },
 
     resetPasswordGet:
         async (req, res, next) => {
-            const { token } = req.params;
+            const { code } = req.params;
             //! Decoded token
-            const ok = await validateToken(token, req);
+            // const ok = await validateToken(token, req);
 
-            const payload = req.user;
+            // const payload = req.user;
 
             //! Check email in & forget code in DB
-            const user = await User.findOne({
-                email: payload?.email,
-                forgetCode: payload?.sentCode,
-            });
+            const user = await User.findOne({forgetCode: code});
             if (!user) {
                 return next(new Error('You already reset your password!', {status: 404 }));
             }
@@ -291,17 +311,14 @@ const authCtrl = {
 
     resetPassword:
         async (req, res, next) => {
-            const { token } = req.params;
+            const { code } = req.params;
             const { newPassword } = req.body;
             //! Decoded token
-            await validateToken(token, req);
-            const payload = req.user;
+            // await validateToken(token, req);
+            // const payload = req.user;
 
             //! Check email in & forget code in DB
-            const user = await User.findOne({
-                email: payload?.email,
-                forgetCode: payload?.sentCode,
-            });
+            const user = await User.findOne({forgetCode: code});
             if (!user) {
                 return next(new Error('You already reset your password!', {status: 404 }));
             }

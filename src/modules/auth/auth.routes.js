@@ -37,13 +37,13 @@ router.post(
 );
 
 router.get(
-    "/reset-password/:token",
+    "/reset-password/:code",
     validate(validator.resetPasswordGetSchema),
     asyncHandler(authCtrl.resetPasswordGet)
 );
 
 router.post(
-    "/reset-password/:token",
+    "/reset-password/:code",
     validate(validator.resetPasswordSchema),
     asyncHandler(authCtrl.resetPassword)
 );
