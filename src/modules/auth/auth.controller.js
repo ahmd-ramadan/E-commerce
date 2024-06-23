@@ -2,24 +2,19 @@ const User = require('../../../database/models/User.js');
 const Vendor = require('../../../database/models/Vendor.js');
 const Request = require('../../../database/models/Request.js');
 
-
-const asyncHandler = require('../../middlewares/asyncHandler.js');
 const {
-    GeneratePassword, 
-    GenerateSalt, 
-    ValidatePassword, 
-    GenerateSignature,
+    generatePassword, 
+    generateSalt, 
+    validatePassword, 
+    generateToken,
     generateUniqueString,
-    ValidateSignature2
-} = require('../../utils/index.js');
+    validateToken
+} = require('../../utils/auth.js');
 const {sendEmail} = require('../../utils/sendEmail.js');
 const {systemRequests, systemRoles, systemRequestsStatus} = require('../../utils/systemValues.js');
 
-
-
 const authCtrl = {
-
-    signUp: asyncHandler(
+    signUp:
         async(req, res, next) => {
             //! Check Fields
             const { name, email, password, phoneNumber} = req.body;
@@ -34,8 +29,8 @@ const authCtrl = {
             }
             
             //! Hashed password
-            const salt = await GenerateSalt();
-            const hashedPassword = await GeneratePassword(password, salt);
+            const salt = await generateSalt();
+            const hashedPassword = await generatePassword(password, salt);
             
             //! Save User in database
             const newUser = await User.create({
@@ -46,7 +41,7 @@ const authCtrl = {
             });
 
             //! Create Token
-            const token = await GenerateSignature({
+            const token = await generateToken({
                 email: email,
                 id: newUser._id
             });
@@ -78,10 +73,9 @@ const authCtrl = {
                 },
                 message: `Account Created Succefully ... Please Check Your Email To Activate Acount`,
             });
-        }
-    ),
+        },
 
-    vendorSignUp: asyncHandler(
+    vendorSignUp:
         async (req, res, next) => {
             //! Check Fields
             const {
@@ -100,8 +94,8 @@ const authCtrl = {
             }
             
             //! Hashed password
-            const salt = await GenerateSalt();
-            const hashedPassword = await GeneratePassword(password, salt);
+            const salt = await generateSalt();
+            const hashedPassword = await generatePassword(password, salt);
             
             //! Save User in database
             const newUser = await User.create({
@@ -139,49 +133,14 @@ const authCtrl = {
                 data: null,
                 message: 'Vendor signed up successfully. Awaiting admin approval.'
             });
-        }
-    ),
+        },
 
-    vendorHandleRequest: asyncHandler(
-        async(req, res, next) => {
-            const {requestId, status } = req.body;
-            const adminRequest = await Request.findById(requestId).populate({
-                path: "data",
-                model: "Vendor",
-                select: "isApproved"
-            });
-
-            console.log(adminRequest);
-
-            if (!adminRequest) {
-                return next(new Error('Request not found', { status: 404}));
-            }
-
-            //! Update the request status
-            adminRequest.status = status;
-            await adminRequest.save();
-
-            //! Update the vendor approval status
-            if (status === systemRequestsStatus.APPROVED) {
-                adminRequest.data.isApproved = true;
-                await adminRequest.data.save();
-            }
-
-            //! Send response
-            res.status(200).json({ 
-                success: true,
-                data: null,
-                message: `Vendor request ${status}` 
-            });
-        }
-    ),
-
-    verifyEmail: asyncHandler(
+    verifyEmail:
         async(req, res, next) => {
             //! Recieve token and Decode it
             const {token} = req.query;
-            console.log(token);
-            await ValidateSignature2(token, req);
+            // console.log(token);
+            await validateToken(token, req);
             const payload = req.user;
 
             //! User exist ?
@@ -200,10 +159,9 @@ const authCtrl = {
                 data: {user},
                 message: 'Account Activated, Try to login'
             });
-        }
-    ),
+        },
     
-    signIn : asyncHandler(
+    signIn:
         async(req, res, next) => {
             //! Check fields
             const {email, password} = req.body;
@@ -222,13 +180,13 @@ const authCtrl = {
             }
 
             //! Validate password
-            const isMatch = await ValidatePassword(password, user.password);
+            const isMatch = await validatePassword(password, user.password);
             if(!isMatch) {
                 return next(new Error('Invalid email or password', {status: 400}));
             }
 
             //! Create Token
-            const token = await GenerateSignature(
+            const token = await generateToken(
                 {
                     email,
                     id: user._id,
@@ -248,10 +206,9 @@ const authCtrl = {
                 },
                 message: `Welcome here ${user.name}`,
             });
-        }
-    ),
+        },
 
-    forgetPassword: asyncHandler(
+    forgetPassword:
         async (req, res, next) => {
             const { email } = req.body;
             //! User Exist ? 
@@ -266,11 +223,11 @@ const authCtrl = {
 
             //! Generate and hashed forget code
             const code = generateUniqueString(6);
-            const salt = await GenerateSalt();
-            const hashedCode = await GeneratePassword(code, salt);
+            const salt = await generateSalt();
+            const hashedCode = await generatePassword(code, salt);
 
             //! Generate reset password token
-            const token = await GenerateSignature({ 
+            const token = await generateToken({ 
                 email, 
                 sentCode: hashedCode
             },
@@ -303,16 +260,17 @@ const authCtrl = {
             return res.status(200).json({ 
                 success: true, 
                 data: userUpdates,
+                token,
                 message: 'Check Your Email To Update Your Password' 
             });
-        }
-    ),
+        },
 
-    resetPasswordGet: asyncHandler(
+    resetPasswordGet:
         async (req, res, next) => {
             const { token } = req.params;
             //! Decoded token
-            await ValidateSignature2(token, req);
+            const ok = await validateToken(token, req);
+
             const payload = req.user;
 
             //! Check email in & forget code in DB
@@ -329,15 +287,14 @@ const authCtrl = {
                 data: null,
                 message: 'Reset Password Here',
             });
-        }
-    ),
+        },
 
-    resetPassword: asyncHandler(
+    resetPassword:
         async (req, res, next) => {
             const { token } = req.params;
             const { newPassword } = req.body;
             //! Decoded token
-            await ValidateSignature2(token, req);
+            await validateToken(token, req);
             const payload = req.user;
 
             //! Check email in & forget code in DB
@@ -350,8 +307,8 @@ const authCtrl = {
             }
 
             //! Hashed new password
-            const salt = await GenerateSalt();
-            const hashedNewPassword = await GeneratePassword(newPassword, salt);
+            const salt = await generateSalt();
+            const hashedNewPassword = await generatePassword(newPassword, salt);
             user.password = hashedNewPassword;
             
 
@@ -370,10 +327,9 @@ const authCtrl = {
                 data: null,
                 message: 'You Are Reset Your Password Successfully!',
             });
-        }
-    ),
+        },
 
-    updatePassword: asyncHandler(
+    updatePassword:
         async (req, res, next) => {
             const {_id} = req.authUser;
             // console.log(req.user);
@@ -383,14 +339,14 @@ const authCtrl = {
             const user = await User.findById(_id);
             
             //! Check password
-            const isPasswordValid = await ValidatePassword(currentPassword, user.password);
+            const isPasswordValid = await validatePassword(currentPassword, user.password);
             if (!isPasswordValid) {
                 return next(new Error('Invalid current password!', { status: 404 }));
             }
 
             //! Hashed new password and save it in DB
-            const salt = await GenerateSalt();
-            const hashedNewPassword = await GeneratePassword(newPassword, salt);
+            const salt = await generateSalt();
+            const hashedNewPassword = await generatePassword(newPassword, salt);
             user.password = hashedNewPassword;
             user.isLoggedIn = false;
 
@@ -407,8 +363,7 @@ const authCtrl = {
                 data: null,
                 message: "Password updated successfully!",
             });
-        }
-    )
+        },
 };
 
 module.exports = authCtrl;

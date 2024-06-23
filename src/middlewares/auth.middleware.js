@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../../database/models/User.js');
-const asyncHandler = require('./asyncHandler');
+const asyncHandler = require('./asyncHandler.middleware.js');
 
 module.exports.auth = (accessRoles) => {
     return asyncHandler(
@@ -19,6 +19,7 @@ module.exports.auth = (accessRoles) => {
             //! Get token without prefix
             const token = authorization.split(' ')[1];
             // console.log(token);
+            
             
             //! decode token
             const decodedData = jwt.verify(token, process.env.JWT_SECRET);

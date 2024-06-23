@@ -1,47 +1,58 @@
 const router = require('express').Router();
 const authCtrl = require('./auth.controller');
+const asyncHandler = require('../../middlewares/asyncHandler.middleware.js');
 const {validator} = require('./auth.validation');
 const {validate} = require('../../middlewares/validation.middleware.js');
-const {auth} = require('../../middlewares/isAuth.js');
+const {auth} = require('../../middlewares/auth.middleware.js');
 const {accessRoles} = require('./auth.access.js');
 
-router.post('/signup', 
+router.post(
+    '/signup', 
     validate(validator.signUpSchema), 
-    authCtrl.signUp);
+    asyncHandler(authCtrl.signUp)
+);
 
-router.post('/vendor-signup', 
+router.post(
+    '/vendor-signup', 
     validate(validator.vendorSignUpSchema),
-    authCtrl.vendorSignUp);
+    asyncHandler(authCtrl.vendorSignUp)
+);
 
-router.post('/vendor-handle-request', 
-    validate(validator.vendorHandleRequestSchema),
-    auth(accessRoles.VENDOR_HNDLE_REQUEST),
-    authCtrl.vendorHandleRequest);
-
-    
-router.get('/verify-email', 
+router.get(
+'/verify-email', 
     validate(validator.verifyEmailSchema), 
-    authCtrl.verifyEmail);
+    asyncHandler(authCtrl.verifyEmail)
+);
 
-router.post('/login', 
+router.post(
+    '/login', 
     validate(validator.signInSchema),
-    authCtrl.signIn);
+    asyncHandler(authCtrl.signIn)
+);
 
-router.post("/forget-password",
+router.post(
+    "/forget-password",
     validate(validator.forgetPasswordSchema),
-    authCtrl.forgetPassword);
+    asyncHandler(authCtrl.forgetPassword)
+);
 
-router.get("/reset-password/:token",
+router.get(
+    "/reset-password/:token",
     validate(validator.resetPasswordGetSchema),
-    authCtrl.resetPasswordGet);
+    asyncHandler(authCtrl.resetPasswordGet)
+);
 
-router.post("/reset-password/:token",
+router.post(
+    "/reset-password/:token",
     validate(validator.resetPasswordSchema),
-    authCtrl.resetPassword);
+    asyncHandler(authCtrl.resetPassword)
+);
 
-router.post("/update-password",
+router.post(
+    "/update-password",
     auth(accessRoles.UPDATE_PASSWORD),
     validate(validator.updatePasswordSchema),
-    authCtrl.updatePassword);
+    asyncHandler(authCtrl.updatePassword)
+);
 
 module.exports = router;

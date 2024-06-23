@@ -2,23 +2,12 @@ const User = require('../../../database/models/User.js');
 const Vendor = require('../../../database/models/Vendor.js');
 const Request = require('../../../database/models/Request.js');
 
-
-const asyncHandler = require('../../middlewares/asyncHandler.js');
-const {
-    GeneratePassword, 
-    GenerateSalt, 
-    ValidatePassword, 
-    GenerateSignature,
-    generateUniqueString,
-    ValidateSignature2
-} = require('../../utils/index.js');
+const {generateToken} = require('../../utils/auth.js');
 const {sendEmail} = require('../../utils/sendEmail.js');
-const {systemRequests, systemRoles, systemRequestsStatus} = require('../../utils/systemValues.js');
-
-
+const {systemRoles, systemRequestsStatus} = require('../../utils/systemValues.js');
 
 const userCtrl = {
-    getUserProfile: asyncHandler(
+    getUserProfile:
         async (req, res, next) => {
             //! Get _id from authUser And find it
             const { _id } = req.authUser;
@@ -34,10 +23,9 @@ const userCtrl = {
                 data: user, 
                 message: "",
             });
-        }
-    ),
+        },
 
-    updateUserProfile: asyncHandler(
+    updateUserProfile:
         async (req, res, next) => {
             //! Get the request body & _id from authUser
             const {name, email, phoneNumbers, addresses} = req.body;
@@ -54,7 +42,7 @@ const userCtrl = {
                 }
                 
                 //! Create Token
-                const token = await GenerateSignature({
+                const token = await generateToken({
                     email: email,
                     id: newUser._id
                 });
@@ -88,16 +76,15 @@ const userCtrl = {
                 data: user,
                 message: "User Infromation Updated Successfully!",
             });
-        }
-    ),
+        },
 
-    deleteUser: asyncHandler(
+    deleteUser:
         async (req, res, next) => {
             //! Get role & _id from the request authUser & userId from query
             const { role, _id } = req.authUser;
             const { userId } = req.query;
             
-            userId = (role == systemRoles.USER || role == systemRoles.ADMIN || role == systemRoles.VENDOR ? _id : userId)
+            if(role != systemRoles.SUPER_ADMIN) userId = _id;
             
             //! Delete user
             const user = await User.findById(userId);
@@ -115,10 +102,9 @@ const userCtrl = {
                 data: null,
                 message: "User Deleted successfully!" 
             });
-        }
-    ),
+        },
 
-    softDeleteUser: asyncHandler(
+    softDeleteUser:
         async (req, res, next) => {
             //! Get role & _id from the request authUser & userId from query
             const { role, _id } = req.authUser;
@@ -142,8 +128,40 @@ const userCtrl = {
                 data: null,
                 message: "User Deleted successfully!" 
             });
-        }
-    )
+        },
+
+    vendorHandleRequest:
+        async(req, res, next) => {
+            const {requestId, status } = req.body;
+            const adminRequest = await Request.findById(requestId).populate({
+                path: "data",
+                model: "Vendor",
+                select: "isApproved"
+            });
+
+            console.log(adminRequest);
+
+            if (!adminRequest) {
+                return next(new Error('Request not found', { status: 404}));
+            }
+
+            //! Update the request status
+            adminRequest.status = status;
+            await adminRequest.save();
+
+            //! Update the vendor approval status
+            if (status === systemRequestsStatus.APPROVED) {
+                adminRequest.data.isApproved = true;
+                await adminRequest.data.save();
+            }
+
+            //! Send response
+            res.status(200).json({ 
+                success: true,
+                data: null,
+                message: `Vendor request ${status}` 
+            });
+        },
 };
 
 module.exports = userCtrl;

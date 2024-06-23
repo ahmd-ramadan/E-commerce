@@ -31,7 +31,7 @@ module.exports.sendEmail = async ({ to, subject, linkTo, fileName }) => {
             html: renderedEmail
         });
 
-        console.log('Email sent: ', info);
+        // console.log('Email sent: ', info);
         return info.accepted.length > 0;
     } catch (error) {
         console.error('Error sending email: ', error);

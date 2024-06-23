@@ -1,5 +1,9 @@
 const Joi = require('joi');
-const {objectIdValidation} = require('../../utils/index.js');
+const {
+    systemRequestsStatus
+} = require('../../utils/systemValues.js');
+const systemRequestsStatusArray = Object.values(systemRequestsStatus);
+const {validateObjectId} = require('../../utils/auth.js');
 
 module.exports.validator = {
     updateUserProfileScheam: {
@@ -9,9 +13,18 @@ module.exports.validator = {
             phoneNumbers: Joi.array().required().items(Joi.string().length(11).trim()),
             addresses: Joi.array().items(Joi.string().trim()),
         }),
+    },
 
-        deleteUserSchema: {
-            userId: Joi.string().custom(objectIdValidation).required(),
-        }
-    } 
+    deleteUserSchema: {
+        query: Joi.object({
+            userId: Joi.string().custom(validateObjectId).required(),
+        }),
+    },
+    
+    vendorHandleRequestSchema: {
+        body: Joi.object({
+            requestId: Joi.string().custom(validateObjectId).required(),      // Validate MongoDB ObjectId format
+            status: Joi.string().valid(...systemRequestsStatusArray).required(), 
+        }),
+    },
 }

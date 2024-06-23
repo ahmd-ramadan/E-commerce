@@ -3,8 +3,6 @@ const {
     systemRoles, 
     systemRequestsStatus
 } = require('../../utils/systemValues.js');
-const systemRequestsStatusArray = Object.values(systemRequestsStatus);
-const {objectIdValidation} = require('../../utils/index.js');
 
 module.exports.validator = {
     signUpSchema : {
@@ -32,14 +30,6 @@ module.exports.validator = {
             facebookLink: Joi.string().allow("")
         }),
     },
-
-    vendorHandleRequestSchema: {
-        body: Joi.object({
-            requestId: Joi.string().custom(objectIdValidation).required(),      // Validate MongoDB ObjectId format
-            status: Joi.string().valid(...systemRequestsStatusArray).required(), 
-        }),
-    },
-
 
     verifyEmailSchema : {
         query: Joi.object({
