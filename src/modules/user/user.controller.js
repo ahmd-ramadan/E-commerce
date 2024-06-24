@@ -6,7 +6,7 @@ const {generateToken} = require('../../utils/auth.js');
 const {sendEmail} = require('../../utils/sendEmail.js');
 const {systemRoles, systemRequestsStatus} = require('../../utils/systemValues.js');
 
-const userCtrl = {
+module.exports.userCtrl = {
     getUserProfile:
         async (req, res, next) => {
             //! Get _id from authUser And find it
@@ -174,5 +174,3 @@ const userCtrl = {
             });
         },
 };
-
-module.exports = userCtrl;

@@ -14,7 +14,7 @@ const {
 const {sendEmail} = require('../../utils/sendEmail.js');
 const {systemRequests, systemRoles, systemRequestsStatus} = require('../../utils/systemValues.js');
 
-const authCtrl = {
+module.exports.authCtrl = {
     signUp:
         async(req, res, next) => {
             //! Check Fields
@@ -393,5 +393,3 @@ const authCtrl = {
             });
         },
 };
-
-module.exports = authCtrl;

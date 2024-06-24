@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../../database/models/User.js');
-const asyncHandler = require('./asyncHandler.middleware.js');
+const {asyncHandler} = require('./asyncHandler.middleware.js');
 const {systemRoles} = require('../utils/systemValues.js');
 
 module.exports.auth = (accessRoles) => {
