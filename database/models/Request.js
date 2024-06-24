@@ -11,7 +11,7 @@ const typeToModelMap = {
 };
 
 const requestSchema = new mongoose.Schema({
-    userId: {
+    user: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true,

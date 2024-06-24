@@ -11,10 +11,10 @@ const userCtrl = {
         async (req, res, next) => {
             //! Get _id from authUser And find it
             const { _id } = req.authUser;
-            const user = await User.findById(_id);
+            let user = await User.findById(_id);
             if(user.role == systemRoles.VENDOR) {
-                user = await Vendor.findOne({userId: _id}).populate({
-                    path: "userId",
+                user = await Vendor.findOne({user: _id}).populate({
+                    path: "user",
                     model: "User",
                 });
             }
@@ -28,7 +28,9 @@ const userCtrl = {
     updateUserProfile:
         async (req, res, next) => {
             //! Get the request body & _id from authUser
-            const {name, email, phoneNumbers, addresses} = req.body;
+            const {
+                name, email, phoneNumbers, addresses,
+            } = req.body;
             const { _id } = req.authUser;
             
             //! Get user
@@ -66,10 +68,15 @@ const userCtrl = {
             user.name = name;
             user.phoneNumbers = phoneNumbers;
             user.addresses = addresses;
+            
+            // //! check is a Vendor
+            // if(user.role === systemRoles.VENDOR) {
+            //     const vendor = await Vendor.findOne({user: user._id});
+            // }
 
             //! Save user in database
             await user.save();
-            
+
             //! Send response
             res.status(200).json({
                 success: true,
@@ -82,8 +89,9 @@ const userCtrl = {
         async (req, res, next) => {
             //! Get role & _id from the request authUser & userId from query
             const { role, _id } = req.authUser;
-            const { userId } = req.query;
+            let { userId } = req.query;
             
+            //! If Super_Admin Delete User(query) / else Delete User(authUser) 
             if(role != systemRoles.SUPER_ADMIN) userId = _id;
             
             //! Delete user
@@ -93,7 +101,7 @@ const userCtrl = {
                 return next(new Error("Deleted Account Failed, Try Again", { status: 400 }));
             }
             if(user.role == systemRoles.VENDOR) {
-                await Vendor.findOneAndDelete({userId});
+                await Vendor.findOneAndDelete({user: userId});
             }
 
             //! Send respnse
@@ -110,7 +118,8 @@ const userCtrl = {
             const { role, _id } = req.authUser;
             const { userId } = req.query;
             
-            userId = (role == systemRoles.USER || role == systemRoles.ADMIN ? _id : userId);
+            //! If Super_Admin Delete User(query) / else Delete User(authUser) 
+            if(role != systemRoles.SUPER_ADMIN) userId = _id;
             
             //! Delete user
             const user = await User.findById(userId);
@@ -119,7 +128,7 @@ const userCtrl = {
                 return next(new Error("Deleted Account Failed, Try Again", { status: 400 }));
             }
             if(user.role == systemRoles.VENDOR) {
-                await Vendor.findOneAndUpdate({userId});
+                await Vendor.findOneAndUpdate({user: userId}, {isApproved: false});
             }
 
             //! Send respnse

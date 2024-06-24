@@ -1,6 +1,7 @@
 const jwt = require('jsonwebtoken');
 const User = require('../../database/models/User.js');
 const asyncHandler = require('./asyncHandler.middleware.js');
+const {systemRoles} = require('../utils/systemValues.js');
 
 module.exports.auth = (accessRoles) => {
     return asyncHandler(
@@ -37,11 +38,11 @@ module.exports.auth = (accessRoles) => {
             }
 
             //! If user change his password he must be loggin again
-            if(!findUser.isLoggedIn){
-                    return next(new Error("You must log in again, try later!", { status: 400 }));
+            if(!findUser.isLoggedIn) {
+                return next(new Error("You must log in again, try later!", { status: 400 }));
             }
-            
-            // console.log(findUser.role);
+            // console.log(findUser);
+
             //! Auhtorization
             if (!accessRoles.includes(findUser.role)) {
                 return next(new Error("Unauthorized", { status: 401 }));

@@ -13,6 +13,12 @@ module.exports.accessRoles = {
         systemRoles.ADMIN,
         systemRoles.SUPER_ADMIN
     ],
+    DELETE_USER: [
+        systemRoles.USER,
+        systemRoles.VENDOR,
+        systemRoles.ADMIN,
+        systemRoles.SUPER_ADMIN
+    ],
     VENDOR_HNDLE_REQUEST: [
         // systemRoles.ADMIN,
         systemRoles.SUPER_ADMIN,

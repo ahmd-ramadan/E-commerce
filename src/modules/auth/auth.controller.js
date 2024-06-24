@@ -154,7 +154,7 @@ const authCtrl = {
         
             if (newUser.role === systemRoles.VENDOR) {
                 const newVendor = await Vendor.create({
-                    userId: newUser._id,
+                    user: newUser._id,
                     factoryName: tempUser.factoryName,
                     factoryAddress: tempUser.factoryAddress,
                     taxNumber: tempUser.taxNumber,
@@ -165,7 +165,7 @@ const authCtrl = {
                 });
 
                 const adminRequest = await Request.create({
-                    userId: newUser._id,
+                    user: newUser._id,
                     desc: "Ask You To Be A Vendor",
                     type: systemRequests.BE_VENDOR,
                     phoneNumber: tempUser.phoneNumber,
@@ -200,9 +200,16 @@ const authCtrl = {
                 return next(new Error('Please confirmed your email', {status: 400}));
             }
 
+            if(user.isDeleted) {
+                return next(new Error('This User Deleted Cannot Login', {status: 400}));
+            }
+
             //! If user is vendor admin appeove to him ?  
-            if(user.role === systemRoles.VENDOR && !user.isApproved) {
-                return next(new Error('Waiting Admain Approval For You', {status: 400}));
+            if(user.role === systemRoles.VENDOR) {
+                const vendor = await Vendor.findOne({user: user._id});
+                if(!vendor.isApproved) {
+                    return next(new Error('Waiting Admain Approval For You', {status: 400}));
+                }
             }
 
             //! Validate password
@@ -238,13 +245,17 @@ const authCtrl = {
         async (req, res, next) => {
             const { email } = req.body;
             //! User Exist ? 
-            const user = await User.findOne({
-                email,
-                confirmEmail: true,
-                isDeleted: false,
-            });
+            const user = await User.findOne({email});
             if (!user) {
                 return next(new Error('Invalid email!', {status: 404 }));
+            }
+
+            if(!user.confirmEmail) {
+                return next(new Error('Please confirmed your email', {status: 400}));
+            }
+
+            if(!user.isDeleted) {
+                return next(new Error('This User Deleted Canot Login', {status: 400}));
             }
 
             //! Generate and hashed forget code
