@@ -1,7 +1,12 @@
 const mongoose = require('mongoose');
+const {
+    model, 
+    Schema
+} = mongoose.Schema;
 const { systemRoles } = require('../../src/utils/systemValues.js');
 // const { systemPermissions } = require('../../src/utils/systemValues.js');
-const userSchema = new mongoose.Schema({
+
+const userSchema = new Schema({
     name: {
         type: String,
         trim: true,
@@ -64,4 +69,4 @@ const userSchema = new mongoose.Schema({
 });
 
 
-module.exports = mongoose.model('User', userSchema);
+module.exports = model('User', userSchema);

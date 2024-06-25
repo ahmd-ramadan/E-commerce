@@ -1,8 +1,11 @@
 const mongoose = require('mongoose');
+const {
+    model, 
+    Schema
+} = mongoose.Schema;
 const { systemRoles } = require('../../src/utils/systemValues.js');
 
-const Schema = mongoose.Schema;
-const vendorSchema = new mongoose.Schema({
+const vendorSchema = new Schema({
     user: {
         type: Schema.Types.ObjectId,
         ref: 'User',
@@ -42,4 +45,4 @@ const vendorSchema = new mongoose.Schema({
 });
 
 
-module.exports = mongoose.model('Vendor', vendorSchema);
+module.exports = model('Vendor', vendorSchema);
