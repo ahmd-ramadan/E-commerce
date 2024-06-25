@@ -10,7 +10,7 @@ const cartSchema = new mongoose.Schema({
     products: [
         {
             product: {
-                type: mongoose.Schema.Types.ObjectId,
+                type: Schema.Types.ObjectId,
                 ref: "Product",
                 required: true,
             },
@@ -29,7 +29,6 @@ const cartSchema = new mongoose.Schema({
                 default: 0,
             },
             finalPrice: {
-                //basePrice * quantity
                 type: Number,
                 required: true,
             }
