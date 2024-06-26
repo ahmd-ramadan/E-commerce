@@ -31,7 +31,7 @@ module.exports.startApp = async(app, express) => {
     app.use('/user', router.userRouter);
     app.use('/cart', router.cartRouter);
     app.use('/wishlist', router.wishlistRouter);
-
+    app.use('/category', router.categoryRouter);
 
     app.use((error, req, res, next) => {
         const statusCode = error.status || 500
