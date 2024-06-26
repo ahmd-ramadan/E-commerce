@@ -36,17 +36,16 @@ router.post(
     asyncHandler(authCtrl.forgetPassword)
 );
 
-router.get(
-    "/reset-password/:code",
-    validate(validator.resetPasswordGetSchema),
-    asyncHandler(authCtrl.resetPasswordGet)
-);
+router.route("/reset-password/:code")
+    .get(
+        validate(validator.resetPasswordGetSchema),
+        asyncHandler(authCtrl.resetPasswordGet)
+    )
 
-router.post(
-    "/reset-password/:code",
-    validate(validator.resetPasswordSchema),
-    asyncHandler(authCtrl.resetPassword)
-);
+    .post(
+        validate(validator.resetPasswordSchema),
+        asyncHandler(authCtrl.resetPassword)
+    );
 
 router.post(
     "/update-password",

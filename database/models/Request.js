@@ -1,8 +1,5 @@
 const mongoose = require('mongoose');
-const {
-    model, 
-    Schema
-} = mongoose.Schema;
+const Schema = mongoose.Schema;
 
 const { 
     systemRequests,
@@ -14,8 +11,8 @@ const typeToModelMap = {
     // [systemRequests.ADD_PRODUCT]: 'Product',
 };
 
-const requestSchema = new Schema({
-    user: {
+const requestSchema = new mongoose.Schema({
+    userId: {
         type: Schema.Types.ObjectId,
         ref: 'User',
         required: true,
@@ -51,4 +48,4 @@ requestSchema.virtual('dataRef').get(function() {
     return typeToModelMap[this.type];
 });
 
-module.exports = model('Request', requestSchema);
+module.exports = mongoose.model('Request', requestSchema);

@@ -2,16 +2,16 @@ const Cart = require('../../../database/models/Cart.js');
 const Product = require('../../../database/models/Product.js');
 
 module.exports.getUserCart = async(userId) => {
-    const userCart = await Cart.findOne({user: userId});
+    const userCart = await Cart.findOne({userId});
     return userCart;
 }
 
 module.exports.addCart = async(userId, product, quantity) => {
     const cartObj = {
-        user: userId,
+        userId,
         products: [
             {
-                product: product._id,
+                productId: product._id,
                 quantity,
                 basePrice: product.appliedPrice,
                 title: product.title,
@@ -32,13 +32,13 @@ module.exports.checkProductAvailability = async(productId, quantity) => {
 
 module.exports.updateProductQuantity = async(cart, productId, quantity) => {
     const isProductExistInCart = cart.products.some(
-        (productd) => productd.product.toString() === productId
+        (productd) => productd.productId.toString() === productId
     );
     if (!isProductExistInCart) {
         return null;
     }
     cart?.products.forEach(product => {
-        if (product.product.toString() === productId) {
+        if (product.productId.toString() === productId) {
             product.quantity = quantity;
             product.finalPrice = product.basePrice * quantity;
         }
@@ -56,7 +56,7 @@ module.exports.calculateSubTotal = (products) => {
 
 module.exports.pushNewProduct = async(cart, product, quantity) => {
     cart?.products.push({
-        product: product._id,
+        productId: product._id,
         quantity: quantity,
         basePrice: product.appliedPrice,
         title: product.title,

@@ -7,32 +7,29 @@ const {auth} = require('../../middlewares/auth.middleware.js');
 const {accessRoles} = require('./user.access.js');
 
 
-router.get(
-    '/',
-    auth(accessRoles.GET_PROFILE),
-    asyncHandler(userCtrl.getUserProfile)
-);
+router.route('/')
+    .get(
+        auth(accessRoles.GET_PROFILE),
+        asyncHandler(userCtrl.getUserProfile)
+    )
 
-router.put(
-    '/',
-    auth(accessRoles.UPDATE_PROFILE),
-    validate(validator.updateUserProfileScheam),
-    asyncHandler(userCtrl.updateUserProfile)
-);
+    .put(
+        auth(accessRoles.UPDATE_PROFILE),
+        validate(validator.updateUserProfileScheam),
+        asyncHandler(userCtrl.updateUserProfile)
+    )
 
-router.delete(
-    '/',
-    auth(accessRoles.DELETE_USER),
-    validate(validator.deleteUserSchema),
-    asyncHandler(userCtrl.deleteUser)
-);
+    .delete(
+        auth(accessRoles.DELETE_USER),
+        validate(validator.deleteUserSchema),
+        asyncHandler(userCtrl.deleteUser)
+    )
 
-router.patch(
-    '/',
-    auth(accessRoles.DELETE_USER),
-    validate(validator.deleteUserSchema),
-    asyncHandler(userCtrl.softDeleteUser)
-);
+    .patch(
+        auth(accessRoles.DELETE_USER),
+        validate(validator.deleteUserSchema),
+        asyncHandler(userCtrl.softDeleteUser)
+    )
 
 router.post(
     '/vendor-request-handle', 

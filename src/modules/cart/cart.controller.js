@@ -13,7 +13,7 @@ module.exports.cartCtrl = {
     addToCart:
         async (req, res, next) => {
             const { productId, quantity } = req.body;
-            const { _id } = req.authUser;
+            const { _id: userId} = req.authUser;
             
             //! Check if the product exists and if it's available
             const product = await checkProductAvailability(productId, quantity);
@@ -22,11 +22,11 @@ module.exports.cartCtrl = {
             }
 
             //! Check if the user has a cart
-            const userCart = await getUserCart(_id);
+            const userCart = await getUserCart(userId);
 
             //! Check if the user has no cart, create a new cart and add the product to it
             if(!userCart) {
-                const newCart = await addCart(_id, product, quantity);
+                const newCart = await addCart(userId, product, quantity);
                 return res.status(201).json({ 
                     success: true,
                     data: newCart,
@@ -57,11 +57,11 @@ module.exports.cartCtrl = {
     removeFromCart: 
         async (req, res, next) => {
             const { productId } = req.params;
-            const { _id } = req.authUser;
+            const { _id: userId } = req.authUser;
         
             const userCart = await Cart.findOne({
-                user: _id,
-                "products.product": productId,
+                userId,
+                "products.productId": productId,
             });
 
             if (!userCart) {
@@ -70,7 +70,7 @@ module.exports.cartCtrl = {
 
             //! The resulting state of the userCart.products array, after removing the specified product from the user's cart
             userCart.products = userCart.products.filter(
-                (product) => product.product.toString() !== productId
+                (product) => product.productId.toString() !== productId
             );
         
             //! The calculated subtotal after updating the cart's products array
@@ -92,8 +92,8 @@ module.exports.cartCtrl = {
     
     getUserCart: 
         async(req, res, next) => {
-            const { _id } = req.authUser;
-            const userCart = await Cart.findOne({user: _id})
+            const {_id: userId} = req.authUser;
+            const userCart = await Cart.findOne({userId})
             if (!userCart) {
                 return res.status(200).json({
                     success: true,
@@ -111,8 +111,8 @@ module.exports.cartCtrl = {
     
     deleteUserCart: 
         async(req, res, next) => {
-            const { _id } = req.authUser;
-            const userCart = await Cart.findOneAndDelete({user: _id})
+            const { _id: userId } = req.authUser;
+            const userCart = await Cart.findOneAndDelete({userId})
             if (!userCart) {
                 return res.status(200).json({
                     success: true,

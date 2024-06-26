@@ -30,9 +30,9 @@ module.exports.wishlistCtrl = {
     removeFromWishlist:
         async (req, res, next) => {
             const { productId } = req.params;
-            const {_id} = req.authUser;
+            const {_id: userId} = req.authUser;
         
-            let wishlist = await Wishlist.findOne({ user: _id });
+            let wishlist = await Wishlist.findOne({ userId });
             if (!wishlist) {
                 return res.status(200).json({ 
                     success: true,
@@ -42,7 +42,7 @@ module.exports.wishlistCtrl = {
             }
 
             wishlist.products = wishlist.products.filter(
-                product => product.product.toString() !== productId
+                product => product.productId.toString() !== productId
             );
             await wishlist.save();
 
@@ -60,9 +60,9 @@ module.exports.wishlistCtrl = {
 
     getUserWishlist: 
         async(req, res, next) => {
-            const {_id} = req.authUser;
-            const wishlist = await Wishlist.findOne({ user: _id }).populate({
-                path: "products.product",
+            const {_id: userId} = req.authUser;
+            const wishlist = await Wishlist.findOne({ userId }).populate({
+                path: "products.productId",
                 model: "Product",
                 select: "title"         //! Will Be changed
             });
@@ -84,8 +84,8 @@ module.exports.wishlistCtrl = {
     
     deleteUserWishlist: 
         async(req, res, next) => {
-            const { _id } = req.authUser;
-            const wishlist = await Wishlist.findOneAndDelete({user: _id})
+            const { _id: userId } = req.authUser;
+            const wishlist = await Wishlist.findOneAndDelete({userId})
             if (!wishlist) {
                 return res.status(200).json({
                     success: true,

@@ -8,18 +8,22 @@ const {validate} = require('../../middlewares/validation.middleware.js');
 const {asyncHandler} = require('../../middlewares/asyncHandler.middleware.js');
 
 
-router.get(
-    '/',
-    auth(accessRoles.TO_CART),
-    asyncHandler(cartCtrl.getUserCart)
-);
+router.route('/')
+    .get(
+        auth(accessRoles.TO_CART),
+        asyncHandler(cartCtrl.getUserCart)
+    )
 
-router.post(
-    '/',
-    auth(accessRoles.TO_CART),
-    validate(validator.addToCartSchema),
-    asyncHandler(cartCtrl.addToCart)
-);
+    .post(
+        auth(accessRoles.TO_CART),
+        validate(validator.addToCartSchema),
+        asyncHandler(cartCtrl.addToCart)
+    )
+
+    .delete(
+        auth(accessRoles.TO_CART),
+        asyncHandler(cartCtrl.deleteUserCart)
+    );
 
 router.put(
     '/:productId',
@@ -28,10 +32,6 @@ router.put(
     asyncHandler(cartCtrl.removeFromCart)
 );
 
-router.delete(
-    '/',
-    auth(accessRoles.TO_CART),
-    asyncHandler(cartCtrl.deleteUserCart)
-);
+
 
 module.exports = router;

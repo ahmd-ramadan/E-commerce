@@ -19,9 +19,6 @@ module.exports.authCtrl = {
         async(req, res, next) => {
             //! Check Fields
             const { name, email, password, phoneNumber} = req.body;
-            if(!name || !email || !password || !phoneNumber) {
-                return next(new Error('Pleasse all fields are required', {status: 400}));
-            }
 
             //! User Exist ?
             const userExist = await User.findOne({email});
@@ -76,9 +73,6 @@ module.exports.authCtrl = {
                 factoryName, factoryAddress, taxNumber,
                 tradeMark, websiteLink, instagramLink, facebookLink
             } = req.body;
-            if(!name || !email || !password || !phoneNumber || !factoryName || !factoryAddress || !taxNumber) {
-                return next(new Error('Pleasse all fields are required', {status: 400}));
-            }
 
             //! User Exist ?
             const userExist = await User.findOne({email});
@@ -134,10 +128,7 @@ module.exports.authCtrl = {
     verifyEmail: 
         async (req, res, next) => {
             const { code } = req.query;
-            if (!code) {
-                return next(new Error('Invalid activation code', { status: 400 }));
-            }
-        
+
             const tempUser = await TemporaryUser.findOne({ activationCode: code });
             if (!tempUser) {
                 return next(new Error('Invalid or expired activation code', { status: 400 }));
@@ -154,7 +145,7 @@ module.exports.authCtrl = {
         
             if (newUser.role === systemRoles.VENDOR) {
                 const newVendor = await Vendor.create({
-                    user: newUser._id,
+                    userId: newUser._id,
                     factoryName: tempUser.factoryName,
                     factoryAddress: tempUser.factoryAddress,
                     taxNumber: tempUser.taxNumber,
@@ -165,7 +156,7 @@ module.exports.authCtrl = {
                 });
 
                 const adminRequest = await Request.create({
-                    user: newUser._id,
+                    userId: newUser._id,
                     desc: "Ask You To Be A Vendor",
                     type: systemRequests.BE_VENDOR,
                     phoneNumber: tempUser.phoneNumber,
@@ -186,9 +177,6 @@ module.exports.authCtrl = {
         async(req, res, next) => {
             //! Check fields
             const {email, password} = req.body;
-            if(!email || !password) {
-                return next(new Error('Pleasse all fields are required', {status: 400}));
-            }
 
             //! User Exist And Activate ?
             const user = await User.findOne({email});
@@ -206,7 +194,7 @@ module.exports.authCtrl = {
 
             //! If user is vendor admin appeove to him ?  
             if(user.role === systemRoles.VENDOR) {
-                const vendor = await Vendor.findOne({user: user._id});
+                const vendor = await Vendor.findOne({userId: user._id});
                 if(!vendor.isApproved) {
                     return next(new Error('Waiting Admain Approval For You', {status: 400}));
                 }

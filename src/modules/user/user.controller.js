@@ -10,10 +10,10 @@ module.exports.userCtrl = {
     getUserProfile:
         async (req, res, next) => {
             //! Get _id from authUser And find it
-            const { _id } = req.authUser;
-            let user = await User.findById(_id);
-            if(user.role == systemRoles.VENDOR) {
-                user = await Vendor.findOne({user: _id}).populate({
+            const { _id: userId } = req.authUser;
+            let user = await User.findById(userId);
+            if(user.role === systemRoles.VENDOR) {
+                user = await Vendor.findOne({userId}).populate({
                     path: "user",
                     model: "User",
                 });
@@ -31,10 +31,10 @@ module.exports.userCtrl = {
             const {
                 name, email, phoneNumbers, addresses,
             } = req.body;
-            const { _id } = req.authUser;
+            const { _id: userId } = req.authUser;
             
             //! Get user
-            const user = await User.findById(_id);
+            const user = await User.findById(userId);
 
             //! Check if the user want to update the email field
             if (email !== user.email) {
@@ -71,7 +71,7 @@ module.exports.userCtrl = {
             
             // //! check is a Vendor
             // if(user.role === systemRoles.VENDOR) {
-            //     const vendor = await Vendor.findOne({user: user._id});
+            //     const vendor = await Vendor.findOne({userId});
             // }
 
             //! Save user in database
@@ -101,7 +101,7 @@ module.exports.userCtrl = {
                 return next(new Error("Deleted Account Failed, Try Again", { status: 400 }));
             }
             if(user.role == systemRoles.VENDOR) {
-                await Vendor.findOneAndDelete({user: userId});
+                await Vendor.findOneAndDelete({userId: userId});
             }
 
             //! Send respnse
@@ -128,7 +128,7 @@ module.exports.userCtrl = {
                 return next(new Error("Deleted Account Failed, Try Again", { status: 400 }));
             }
             if(user.role == systemRoles.VENDOR) {
-                await Vendor.findOneAndUpdate({user: userId}, {isApproved: false});
+                await Vendor.findOneAndUpdate({userId}, {isApproved: false});
             }
 
             //! Send respnse
